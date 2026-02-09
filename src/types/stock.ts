@@ -33,9 +33,6 @@ export interface FmpKeyMetrics {
   date: string;
   symbol: string;
   period: string;
-  peRatio: number | null;
-  priceToSalesRatio: number;
-  priceToBookRatio: number;
   earningsYield: number;
 }
 

@@ -92,7 +92,7 @@ export function useStockData(): UseStockDataReturn {
     try {
       const [quoteData, incomeData, metricsData] = await Promise.all([
         fetchQuote(t),
-        fetchIncomeStatements(t, 8),
+        fetchIncomeStatements(t, 5),
         fetchKeyMetrics(t, 4),
       ]);
 
@@ -108,8 +108,8 @@ export function useStockData(): UseStockDataReturn {
       const latestEps = incomeData.length > 0
         ? toFiniteNumber(incomeData[0].epsdiluted) ?? toFiniteNumber(incomeData[0].eps)
         : null;
-      const latestPe = metricsData.length > 0
-        ? toFiniteNumber(metricsData[0].peRatio)
+      const latestPe = metricsData.length > 0 && metricsData[0].earningsYield !== 0
+        ? toFiniteNumber(1 / metricsData[0].earningsYield)
         : null;
 
       setQuote({
@@ -133,11 +133,11 @@ export function useStockData(): UseStockDataReturn {
       setEpsCagr(computeEpsCagrs(epsValues));
 
       const peEntries = metricsData.reduce<PeHistoryEntry[]>((entries, item) => {
-        const peRatio = toFiniteNumber(item.peRatio);
-        if (peRatio !== null && peRatio > 0) {
+        const ey = toFiniteNumber(item.earningsYield);
+        if (ey !== null && ey > 0) {
           entries.push({
             year: extractYear(item.date),
-            peRatio,
+            peRatio: 1 / ey,
           });
         }
         return entries;

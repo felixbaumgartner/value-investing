@@ -17,9 +17,9 @@ export async function fetchQuote(ticker: string): Promise<FmpQuote> {
 
 export async function fetchIncomeStatements(
   ticker: string,
-  limit: number = 8
+  limit: number = 5
 ): Promise<FmpIncomeStatement[]> {
-  const safeLimit = Number.isInteger(limit) && limit > 0 ? limit : 8;
+  const safeLimit = Number.isInteger(limit) && limit > 0 ? Math.min(limit, 5) : 5;
   return fmpFetch<FmpIncomeStatement[]>(`/income-statement`, {
     symbol: ticker.toUpperCase(),
     period: "annual",
