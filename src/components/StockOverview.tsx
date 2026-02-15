@@ -1,5 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Star } from "lucide-react";
 import { formatCurrency, formatPeRatio, formatPercent, formatMarketCap } from "@/utils/formatters";
 import type { QuoteData } from "@/types/stock";
 
@@ -7,9 +9,11 @@ interface StockOverviewProps {
   quote: QuoteData;
   currentBvps: number | null;
   currentRoe: number | null;
+  isInWatchlist?: boolean;
+  onSaveToWatchlist?: () => void;
 }
 
-export function StockOverview({ quote, currentBvps, currentRoe }: StockOverviewProps) {
+export function StockOverview({ quote, currentBvps, currentRoe, isInWatchlist, onSaveToWatchlist }: StockOverviewProps) {
   const hasEps = quote.eps !== null && Number.isFinite(quote.eps);
   const hasPositivePe =
     quote.pe !== null && Number.isFinite(quote.pe) && quote.pe > 0;
@@ -29,11 +33,27 @@ export function StockOverview({ quote, currentBvps, currentRoe }: StockOverviewP
             </div>
             <p className="text-muted-foreground">{quote.name}</p>
           </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold">{formatCurrency(quote.price)}</p>
-            <p className="text-sm text-muted-foreground">
-              Mkt Cap: {formatMarketCap(quote.marketCap)}
-            </p>
+          <div className="text-right flex items-start gap-2">
+            <div>
+              <p className="text-2xl font-bold">{formatCurrency(quote.price)}</p>
+              <p className="text-sm text-muted-foreground">
+                Mkt Cap: {formatMarketCap(quote.marketCap)}
+              </p>
+            </div>
+            {onSaveToWatchlist && (
+              <Button
+                size="sm"
+                variant={isInWatchlist ? "default" : "outline"}
+                onClick={onSaveToWatchlist}
+                className="shrink-0"
+              >
+                <Star
+                  className="h-4 w-4 mr-1"
+                  fill={isInWatchlist ? "currentColor" : "none"}
+                />
+                {isInWatchlist ? "Update" : "Save"}
+              </Button>
+            )}
           </div>
         </div>
 

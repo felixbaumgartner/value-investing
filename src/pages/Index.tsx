@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { useStockData } from "@/hooks/useStockData";
+import { useWatchlist } from "@/hooks/useWatchlist";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { TickerSearch } from "@/components/TickerSearch";
 import { StockOverview } from "@/components/StockOverview";
+import { WatchlistPanel } from "@/components/WatchlistPanel";
 import { EpsGrowthCard } from "@/components/EpsGrowthCard";
 import { PeRatioCard } from "@/components/PeRatioCard";
 import { FutureEpsInput } from "@/components/FutureEpsInput";
@@ -16,9 +19,12 @@ import { FutureRoeInput } from "@/components/FutureRoeInput";
 import { DebtEquityCard } from "@/components/DebtEquityCard";
 import { CrossMethodComparison } from "@/components/CrossMethodComparison";
 import { BookValueInsights } from "@/components/BookValueInsights";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Star } from "lucide-react";
+import type { WatchlistItem } from "@/types/stock";
 
 export default function Index() {
   const {
@@ -58,24 +64,86 @@ export default function Index() {
     reset,
   } = useStockData();
 
+  const watchlist = useWatchlist();
+  const [showWatchlist, setShowWatchlist] = useState(false);
+
   const isLoaded = status === "loaded";
   const isLoading = status === "loading";
 
   const bothMethodsComplete =
     npvResults.length > 0 && npvResultsBv.length > 0;
 
+  const handleSaveToWatchlist = () => {
+    if (!quote) return;
+    const npvAt10Earnings = npvResults.find((r) => r.discountRate === 0.1)?.npv ?? null;
+    const npvAt10BookValue = npvResultsBv.find((r) => r.discountRate === 0.1)?.npv ?? null;
+    const now = new Date().toISOString();
+
+    const item: WatchlistItem = {
+      ticker: quote.symbol,
+      name: quote.name,
+      priceAtSave: quote.price,
+      assumptions: {
+        expectedCagr,
+        expectedPe,
+        expectedBvpsCagr,
+        expectedRoe,
+        expectedPeBv,
+      },
+      results: {
+        futurePrice,
+        npvAt10Earnings,
+        futurePriceFromBv,
+        npvAt10BookValue,
+      },
+      savedAt: now,
+    };
+    watchlist.addOrUpdate(item);
+  };
+
+  const handleLoadFromWatchlist = (item: WatchlistItem) => {
+    fetchStock(item.ticker, item.assumptions);
+    setShowWatchlist(false);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
 
       <main className="flex-1 mx-auto w-full max-w-4xl px-4 py-8 space-y-6">
-        {/* Ticker Search — always visible */}
-        <TickerSearch
-          status={status}
-          error={error}
-          onSearch={fetchStock}
-          onReset={reset}
-        />
+        {/* Ticker Search + Watchlist toggle */}
+        <div className="flex gap-2 items-start">
+          <div className="flex-1">
+            <TickerSearch
+              status={status}
+              error={error}
+              onSearch={fetchStock}
+              onReset={reset}
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setShowWatchlist(!showWatchlist)}
+            className="relative shrink-0 mt-0"
+          >
+            <Star className="h-4 w-4" fill={showWatchlist ? "currentColor" : "none"} />
+            {watchlist.items.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
+                {watchlist.items.length}
+              </span>
+            )}
+          </Button>
+        </div>
+
+        {/* Watchlist Panel */}
+        {showWatchlist && (
+          <WatchlistPanel
+            items={watchlist.items}
+            onLoad={handleLoadFromWatchlist}
+            onRemove={watchlist.remove}
+          />
+        )}
 
         {/* Loading skeletons */}
         {isLoading && (
@@ -91,7 +159,13 @@ export default function Index() {
         {/* Stock Overview — shared across both tabs */}
         {isLoaded && quote && (
           <div className="animate-fade-in">
-            <StockOverview quote={quote} currentBvps={currentBvps} currentRoe={currentRoe} />
+            <StockOverview
+              quote={quote}
+              currentBvps={currentBvps}
+              currentRoe={currentRoe}
+              isInWatchlist={watchlist.isInWatchlist(quote.symbol)}
+              onSaveToWatchlist={handleSaveToWatchlist}
+            />
           </div>
         )}
 

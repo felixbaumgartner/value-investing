@@ -166,3 +166,29 @@ export interface DebtEquityHistoryEntry {
 }
 
 export type AppStatus = "idle" | "loading" | "loaded" | "error";
+
+// --- Watchlist types ---
+
+export interface WatchlistAssumptions {
+  expectedCagr: number | null;
+  expectedPe: number | null;
+  expectedBvpsCagr: number | null;
+  expectedRoe: number | null;
+  expectedPeBv: number | null;
+}
+
+export interface WatchlistResults {
+  futurePrice: number | null;
+  npvAt10Earnings: number | null;
+  futurePriceFromBv: number | null;
+  npvAt10BookValue: number | null;
+}
+
+export interface WatchlistItem {
+  ticker: string;
+  name: string;
+  priceAtSave: number;
+  assumptions: WatchlistAssumptions;
+  results: WatchlistResults;
+  savedAt: string;
+}

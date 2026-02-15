@@ -24,6 +24,7 @@ import type {
   BvpsHistoryEntry,
   RoeHistoryEntry,
   DebtEquityHistoryEntry,
+  WatchlistAssumptions,
 } from "@/types/stock";
 
 export interface UseStockDataReturn {
@@ -60,7 +61,7 @@ export interface UseStockDataReturn {
   futurePriceFromBv: number | null;
   npvResultsBv: NpvResult[];
 
-  fetchStock: (ticker: string) => Promise<void>;
+  fetchStock: (ticker: string, initialAssumptions?: WatchlistAssumptions) => Promise<void>;
   setExpectedCagr: (cagr: number) => void;
   setExpectedPe: (pe: number) => void;
   setExpectedBvpsCagr: (cagr: number) => void;
@@ -151,7 +152,7 @@ export function useStockData(): UseStockDataReturn {
     return computeAllNpvs(futurePriceFromBv);
   }, [futurePriceFromBv]);
 
-  const fetchStock = useCallback(async (tickerInput: string) => {
+  const fetchStock = useCallback(async (tickerInput: string, initialAssumptions?: WatchlistAssumptions) => {
     const t = tickerInput.trim().toUpperCase();
     if (!t) return;
     const requestId = ++requestIdRef.current;
@@ -159,11 +160,11 @@ export function useStockData(): UseStockDataReturn {
     setTicker(t);
     setStatus("loading");
     setError(null);
-    setExpectedCagrState(null);
-    setExpectedPeState(null);
-    setExpectedBvpsCagrState(null);
-    setExpectedRoeState(null);
-    setExpectedPeBvState(null);
+    setExpectedCagrState(initialAssumptions?.expectedCagr ?? null);
+    setExpectedPeState(initialAssumptions?.expectedPe ?? null);
+    setExpectedBvpsCagrState(initialAssumptions?.expectedBvpsCagr ?? null);
+    setExpectedRoeState(initialAssumptions?.expectedRoe ?? null);
+    setExpectedPeBvState(initialAssumptions?.expectedPeBv ?? null);
 
     try {
       // All calls in parallel — MSN P/E is best-effort (returns null on failure)

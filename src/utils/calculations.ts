@@ -140,3 +140,37 @@ export function computeImpliedAnnualReturn(
   if (currentPrice <= 0) return 0;
   return Math.pow(futurePrice / currentPrice, 1 / PROJECTION_YEARS) - 1;
 }
+
+// ── Verdict helpers (shared by ValuationSummary & WatchlistPanel) ───
+
+export type Verdict = "undervalued" | "fairly-valued" | "overvalued";
+
+export function getVerdict(currentPrice: number, npvAt10: number): Verdict {
+  if (npvAt10 > currentPrice * 1.15) return "undervalued";
+  if (npvAt10 < currentPrice * 0.85) return "overvalued";
+  return "fairly-valued";
+}
+
+export const verdictConfig: Record<
+  Verdict,
+  { label: string; className: string; description: string }
+> = {
+  undervalued: {
+    label: "Potentially Undervalued",
+    className: "bg-green-100 text-green-800 border-green-200",
+    description:
+      "Based on your inputs, the stock appears to be trading below its estimated fair value at a 10% discount rate.",
+  },
+  "fairly-valued": {
+    label: "Fairly Valued",
+    className: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    description:
+      "Based on your inputs, the stock appears to be trading near its estimated fair value at a 10% discount rate.",
+  },
+  overvalued: {
+    label: "Potentially Overvalued",
+    className: "bg-red-100 text-red-800 border-red-200",
+    description:
+      "Based on your inputs, the stock appears to be trading above its estimated fair value at a 10% discount rate.",
+  },
+};
