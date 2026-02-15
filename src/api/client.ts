@@ -1,10 +1,10 @@
-const FMP_BASE_URL = "https://financialmodelingprep.com/stable";
+const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
 
 function getApiKey(): string {
-  const key = import.meta.env.VITE_FMP_API_KEY;
+  const key = import.meta.env.VITE_FINNHUB_API_KEY;
   if (!key) {
     throw new ApiError(
-      "FMP API key not configured. Create a .env file with VITE_FMP_API_KEY=your_key",
+      "Finnhub API key not configured. Create a .env file with VITE_FINNHUB_API_KEY=your_key",
       0,
       ""
     );
@@ -23,12 +23,12 @@ export class ApiError extends Error {
   }
 }
 
-export async function fmpFetch<T>(
+export async function finnhubFetch<T>(
   endpoint: string,
   params?: Record<string, string>
 ): Promise<T> {
-  const url = new URL(`${FMP_BASE_URL}${endpoint}`);
-  url.searchParams.set("apikey", getApiKey());
+  const url = new URL(`${FINNHUB_BASE_URL}${endpoint}`);
+  url.searchParams.set("token", getApiKey());
   if (params) {
     Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   }
@@ -38,8 +38,15 @@ export async function fmpFetch<T>(
   if (!response.ok) {
     if (response.status === 429) {
       throw new ApiError(
-        "API rate limit reached. Free tier allows 250 requests/day.",
+        "API rate limit reached. Free tier allows 60 calls/minute.",
         429,
+        endpoint
+      );
+    }
+    if (response.status === 403) {
+      throw new ApiError(
+        "This endpoint requires a premium Finnhub subscription.",
+        403,
         endpoint
       );
     }
@@ -52,22 +59,8 @@ export async function fmpFetch<T>(
 
   const data = await response.json();
 
-  if (Array.isArray(data) && data.length === 0) {
-    throw new ApiError(
-      "No data found for this ticker symbol",
-      404,
-      endpoint
-    );
-  }
-
-  if (data && typeof data === "object") {
-    const errorMessage = ["Error Message", "error", "message"]
-      .map((key) => (data as Record<string, unknown>)[key])
-      .find((value): value is string => typeof value === "string" && value.length > 0);
-
-    if (errorMessage) {
-      throw new ApiError(errorMessage, 400, endpoint);
-    }
+  if (data && typeof data === "object" && "error" in data && typeof data.error === "string") {
+    throw new ApiError(data.error, 400, endpoint);
   }
 
   return data as T;

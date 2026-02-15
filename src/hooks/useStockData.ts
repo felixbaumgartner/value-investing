@@ -1,5 +1,10 @@
 import { useState, useCallback, useMemo, useRef } from "react";
-import { fetchQuote, fetchIncomeStatements, fetchKeyMetrics } from "@/api/stockApi";
+import {
+  fetchQuote,
+  fetchProfile,
+  fetchBasicFinancials,
+  fetchMsnPeRatio,
+} from "@/api/stockApi";
 import { computeEpsCagrs, computeFutureEps, computeFuturePrice, computeAllNpvs } from "@/utils/calculations";
 import type {
   AppStatus,
@@ -90,58 +95,79 @@ export function useStockData(): UseStockDataReturn {
     setExpectedPeState(null);
 
     try {
-      const [quoteData, incomeData, metricsData] = await Promise.all([
+      // All calls in parallel — MSN P/E is best-effort (returns null on failure)
+      const [quoteData, profileData, metricsData, msnPe] = await Promise.all([
         fetchQuote(t),
-        fetchIncomeStatements(t, 5),
-        fetchKeyMetrics(t, 4),
+        fetchProfile(t),
+        fetchBasicFinancials(t),
+        fetchMsnPeRatio(t),
       ]);
 
       if (requestId !== requestIdRef.current) return;
 
-      const price = toFiniteNumber(quoteData.price);
+      const price = toFiniteNumber(quoteData.c);
       if (price === null || price <= 0) {
         throw new Error("Quote data did not include a valid stock price");
       }
 
-      // Derive EPS and P/E from income statements and key metrics
-      // since the /stable/quote endpoint no longer provides them.
-      const latestEps = incomeData.length > 0
-        ? toFiniteNumber(incomeData[0].epsdiluted) ?? toFiniteNumber(incomeData[0].eps)
-        : null;
-      const latestPe = metricsData.length > 0 && metricsData[0].earningsYield !== 0
-        ? toFiniteNumber(1 / metricsData[0].earningsYield)
-        : null;
+      // Current EPS and P/E — prefer MSN P/E (handles complex structures correctly)
+      const latestEps =
+        toFiniteNumber(metricsData.metric.epsTTM) ??
+        toFiniteNumber(metricsData.metric.epsAnnual);
+
+      const finnhubPe =
+        toFiniteNumber(metricsData.metric.peTTM) ??
+        toFiniteNumber(metricsData.metric.peAnnual);
+
+      const latestPe = msnPe ?? finnhubPe;
+
+      // If MSN gave us a better P/E, also derive a corrected EPS
+      const latestEpsCorrected =
+        msnPe !== null && price > 0 ? price / msnPe : latestEps;
 
       setQuote({
-        symbol: quoteData.symbol,
-        name: quoteData.name || quoteData.symbol,
+        symbol: profileData.ticker,
+        name: profileData.name || profileData.ticker,
         price,
-        eps: latestEps,
+        eps: latestEpsCorrected,
         pe: latestPe,
-        marketCap: toFiniteNumber(quoteData.marketCap),
-        exchange: quoteData.exchange,
+        marketCap: profileData.marketCapitalization
+          ? profileData.marketCapitalization * 1_000_000
+          : null,
+        exchange: profileData.exchange,
       });
 
-      const epsEntries: EpsHistoryEntry[] = incomeData.map((item) => ({
-        year: extractYear(item.date),
-        eps: toFiniteNumber(item.eps),
-        epsDiluted: toFiniteNumber(item.epsdiluted) ?? toFiniteNumber(item.eps),
-      }));
+      // --- EPS history from metrics annual series (split-adjusted) ---
+      const epsSeries = metricsData.series?.annual?.eps ?? [];
+      const epsEntries: EpsHistoryEntry[] = epsSeries
+        .slice(0, 8)
+        .map((item) => {
+          const eps = toFiniteNumber(item.v);
+          return {
+            year: extractYear(item.period),
+            eps,
+            epsDiluted: eps,
+          };
+        });
       setEpsHistory(epsEntries);
 
       const epsValues = epsEntries.map((e) => e.epsDiluted);
       setEpsCagr(computeEpsCagrs(epsValues));
 
-      const peEntries = metricsData.reduce<PeHistoryEntry[]>((entries, item) => {
-        const ey = toFiniteNumber(item.earningsYield);
-        if (ey !== null && ey > 0) {
-          entries.push({
-            year: extractYear(item.date),
-            peRatio: 1 / ey,
-          });
-        }
-        return entries;
-      }, []);
+      // --- P/E history from metrics annual series ---
+      const peSeries = metricsData.series?.annual?.pe ?? [];
+      const peEntries: PeHistoryEntry[] = peSeries
+        .slice(0, 8)
+        .reduce<PeHistoryEntry[]>((entries, item) => {
+          const pe = toFiniteNumber(item.v);
+          if (pe !== null && pe > 0) {
+            entries.push({
+              year: extractYear(item.period),
+              peRatio: pe,
+            });
+          }
+          return entries;
+        }, []);
       setPeHistory(peEntries);
 
       setStatus("loaded");
