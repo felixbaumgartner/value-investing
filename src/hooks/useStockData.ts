@@ -23,6 +23,7 @@ import type {
   NpvResult,
   BvpsHistoryEntry,
   RoeHistoryEntry,
+  DebtEquityHistoryEntry,
 } from "@/types/stock";
 
 export interface UseStockDataReturn {
@@ -48,6 +49,7 @@ export interface UseStockDataReturn {
   bvpsHistory: BvpsHistoryEntry[];
   bvpsCagr: EpsCagr;
   roeHistory: RoeHistoryEntry[];
+  debtEquityHistory: DebtEquityHistoryEntry[];
   currentBvps: number | null;
   currentRoe: number | null;
   expectedBvpsCagr: number | null;
@@ -102,6 +104,7 @@ export function useStockData(): UseStockDataReturn {
     sevenYear: null,
   });
   const [roeHistory, setRoeHistory] = useState<RoeHistoryEntry[]>([]);
+  const [debtEquityHistory, setDebtEquityHistory] = useState<DebtEquityHistoryEntry[]>([]);
   const [currentBvps, setCurrentBvps] = useState<number | null>(null);
   const [expectedBvpsCagr, setExpectedBvpsCagrState] = useState<number | null>(null);
   const [expectedRoe, setExpectedRoeState] = useState<number | null>(null);
@@ -273,6 +276,16 @@ export function useStockData(): UseStockDataReturn {
         }));
       setRoeHistory(roeEntries);
 
+      // --- Debt-to-Equity history from metrics annual series ---
+      const deSeries = metricsData.series?.annual?.totalDebtToEquity ?? [];
+      const deEntries: DebtEquityHistoryEntry[] = deSeries
+        .slice(0, 8)
+        .map((item) => ({
+          year: extractYear(item.period),
+          debtToEquity: toFiniteNumber(item.v),
+        }));
+      setDebtEquityHistory(deEntries);
+
       setStatus("loaded");
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
@@ -323,6 +336,7 @@ export function useStockData(): UseStockDataReturn {
     setBvpsHistory([]);
     setBvpsCagr({ threeYear: null, fiveYear: null, sevenYear: null });
     setRoeHistory([]);
+    setDebtEquityHistory([]);
     setCurrentBvps(null);
     setExpectedBvpsCagrState(null);
     setExpectedRoeState(null);
@@ -348,6 +362,7 @@ export function useStockData(): UseStockDataReturn {
     bvpsHistory,
     bvpsCagr,
     roeHistory,
+    debtEquityHistory,
     currentBvps,
     currentRoe,
     expectedBvpsCagr,

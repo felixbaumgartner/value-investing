@@ -1,11 +1,13 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency } from "@/utils/formatters";
+import { formatCurrency, formatPercent } from "@/utils/formatters";
+import { computeImpliedAnnualReturn } from "@/utils/calculations";
 import { cn } from "@/lib/utils";
 import type { NpvResult } from "@/types/stock";
 
 interface ValuationSummaryProps {
   currentPrice: number;
+  futurePrice: number;
   npvResults: NpvResult[];
 }
 
@@ -43,6 +45,7 @@ const verdictConfig: Record<
 
 export function ValuationSummary({
   currentPrice,
+  futurePrice,
   npvResults,
 }: ValuationSummaryProps) {
   const npvAt10 = npvResults.find((r) => r.discountRate === 0.1);
@@ -53,6 +56,8 @@ export function ValuationSummary({
 
   const minNpv = Math.min(...npvResults.map((r) => r.npv));
   const maxNpv = Math.max(...npvResults.map((r) => r.npv));
+
+  const impliedReturn = computeImpliedAnnualReturn(futurePrice, currentPrice);
 
   return (
     <Card>
@@ -65,7 +70,7 @@ export function ValuationSummary({
             {config.label}
           </Badge>
 
-          <div className="grid grid-cols-3 gap-4 pt-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
             <div>
               <p className="text-sm text-muted-foreground">Current Price</p>
               <p className="text-lg font-bold">{formatCurrency(currentPrice)}</p>
@@ -80,6 +85,17 @@ export function ValuationSummary({
               <p className="text-sm text-muted-foreground">NPV Range</p>
               <p className="text-lg font-bold">
                 {formatCurrency(minNpv)} - {formatCurrency(maxNpv)}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Implied Annual Return</p>
+              <p
+                className={cn(
+                  "text-lg font-bold",
+                  impliedReturn >= 0 ? "text-green-600" : "text-red-600"
+                )}
+              >
+                {formatPercent(impliedReturn)}
               </p>
             </div>
           </div>

@@ -84,7 +84,8 @@ export function FutureBvpsInput({
           )}
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground w-10 text-right shrink-0">{BVPS_CAGR_INPUT.min}%</span>
           <Slider
             min={BVPS_CAGR_INPUT.min}
             max={BVPS_CAGR_INPUT.max}
@@ -93,7 +94,8 @@ export function FutureBvpsInput({
             onValueChange={handleSliderChange}
             className="flex-1"
           />
-          <div className="flex items-center gap-1 w-24">
+          <span className="text-xs text-muted-foreground w-10 shrink-0">{BVPS_CAGR_INPUT.max}%</span>
+          <div className="flex items-center gap-1 w-24 shrink-0">
             <Input
               type="number"
               value={sliderValue.toFixed(1)}

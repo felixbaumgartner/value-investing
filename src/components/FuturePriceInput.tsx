@@ -94,7 +94,8 @@ export function FuturePriceInput({
           </p>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground w-10 text-right shrink-0">{PE_INPUT.min}x</span>
           <Slider
             min={PE_INPUT.min}
             max={PE_INPUT.max}
@@ -103,7 +104,8 @@ export function FuturePriceInput({
             onValueChange={handleSliderChange}
             className="flex-1"
           />
-          <div className="flex items-center gap-1 w-24">
+          <span className="text-xs text-muted-foreground w-10 shrink-0">{PE_INPUT.max}x</span>
+          <div className="flex items-center gap-1 w-24 shrink-0">
             <Input
               type="number"
               value={sliderValue.toFixed(1)}

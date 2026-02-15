@@ -13,6 +13,9 @@ import { BvpsGrowthCard } from "@/components/BvpsGrowthCard";
 import { RoeHistoryCard } from "@/components/RoeHistoryCard";
 import { FutureBvpsInput } from "@/components/FutureBvpsInput";
 import { FutureRoeInput } from "@/components/FutureRoeInput";
+import { DebtEquityCard } from "@/components/DebtEquityCard";
+import { CrossMethodComparison } from "@/components/CrossMethodComparison";
+import { BookValueInsights } from "@/components/BookValueInsights";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -36,6 +39,7 @@ export default function Index() {
     bvpsHistory,
     bvpsCagr,
     roeHistory,
+    debtEquityHistory,
     currentBvps,
     currentRoe,
     expectedBvpsCagr,
@@ -56,6 +60,9 @@ export default function Index() {
 
   const isLoaded = status === "loaded";
   const isLoading = status === "loading";
+
+  const bothMethodsComplete =
+    npvResults.length > 0 && npvResultsBv.length > 0;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -141,8 +148,16 @@ export default function Index() {
                   />
                   <ValuationSummary
                     currentPrice={quote.price}
+                    futurePrice={futurePrice}
                     npvResults={npvResults}
                   />
+                  {bothMethodsComplete && (
+                    <CrossMethodComparison
+                      currentPrice={quote.price}
+                      earningsNpvResults={npvResults}
+                      bookValueNpvResults={npvResultsBv}
+                    />
+                  )}
                 </>
               )}
             </TabsContent>
@@ -166,11 +181,14 @@ export default function Index() {
                 </>
               )}
 
-              {/* ROE History + Step 2 — visible after BVPS CAGR is set */}
+              {/* ROE + D/E History + Step 2 — visible after BVPS CAGR is set */}
               {futureBvps !== null && (
                 <>
                   <Separator />
-                  <RoeHistoryCard roeHistory={roeHistory} />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <RoeHistoryCard roeHistory={roeHistory} />
+                    <DebtEquityCard debtEquityHistory={debtEquityHistory} />
+                  </div>
                   <FutureRoeInput
                     futureBvps={futureBvps}
                     roeHistory={roeHistory}
@@ -198,8 +216,8 @@ export default function Index() {
                 </>
               )}
 
-              {/* NPV Table — visible after future price is calculated */}
-              {futurePriceFromBv !== null && quote && npvResultsBv.length > 0 && (
+              {/* NPV Table + Insights — visible after future price is calculated */}
+              {futurePriceFromBv !== null && quote && npvResultsBv.length > 0 && futureBvps !== null && currentBvps !== null && (
                 <>
                   <Separator />
                   <NpvTable
@@ -209,8 +227,22 @@ export default function Index() {
                   />
                   <ValuationSummary
                     currentPrice={quote.price}
+                    futurePrice={futurePriceFromBv}
                     npvResults={npvResultsBv}
                   />
+                  <BookValueInsights
+                    currentPrice={quote.price}
+                    currentBvps={currentBvps}
+                    futureBvps={futureBvps}
+                    futurePriceFromBv={futurePriceFromBv}
+                  />
+                  {bothMethodsComplete && (
+                    <CrossMethodComparison
+                      currentPrice={quote.price}
+                      earningsNpvResults={npvResults}
+                      bookValueNpvResults={npvResultsBv}
+                    />
+                  )}
                 </>
               )}
             </TabsContent>

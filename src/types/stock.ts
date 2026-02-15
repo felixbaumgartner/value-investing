@@ -160,4 +160,9 @@ export interface RoeHistoryEntry {
   roe: number | null; // as decimal, e.g. 0.15 = 15%
 }
 
+export interface DebtEquityHistoryEntry {
+  year: string;
+  debtToEquity: number | null;
+}
+
 export type AppStatus = "idle" | "loading" | "loaded" | "error";

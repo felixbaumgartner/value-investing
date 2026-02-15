@@ -129,3 +129,14 @@ export function computeFutureEpsFromBv(
 ): number {
   return futureBvps * expectedRoe;
 }
+
+/**
+ * Implied annual return if you buy at currentPrice and sell at futurePrice in 5 years.
+ */
+export function computeImpliedAnnualReturn(
+  futurePrice: number,
+  currentPrice: number
+): number {
+  if (currentPrice <= 0) return 0;
+  return Math.pow(futurePrice / currentPrice, 1 / PROJECTION_YEARS) - 1;
+}

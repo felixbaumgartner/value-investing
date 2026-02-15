@@ -15,6 +15,8 @@ export function StockOverview({ quote, currentBvps, currentRoe }: StockOverviewP
     quote.pe !== null && Number.isFinite(quote.pe) && quote.pe > 0;
   const hasBvps = currentBvps !== null && Number.isFinite(currentBvps);
   const hasRoe = currentRoe !== null && Number.isFinite(currentRoe);
+  const currentPb =
+    hasBvps && currentBvps > 0 ? quote.price / currentBvps : null;
 
   return (
     <Card>
@@ -35,7 +37,7 @@ export function StockOverview({ quote, currentBvps, currentRoe }: StockOverviewP
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t">
           <div>
             <p className="text-sm text-muted-foreground">Current EPS (TTM)</p>
             <p className="text-lg font-semibold">
@@ -58,6 +60,12 @@ export function StockOverview({ quote, currentBvps, currentRoe }: StockOverviewP
             <p className="text-sm text-muted-foreground">Return on Equity</p>
             <p className="text-lg font-semibold">
               {hasRoe ? formatPercent(currentRoe) : "N/A"}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Price / Book</p>
+            <p className="text-lg font-semibold">
+              {currentPb != null ? `${currentPb.toFixed(2)}x` : "N/A"}
             </p>
           </div>
         </div>
