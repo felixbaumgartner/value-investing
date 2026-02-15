@@ -5,7 +5,15 @@ import {
   fetchBasicFinancials,
   fetchMsnPeRatio,
 } from "@/api/stockApi";
-import { computeEpsCagrs, computeFutureEps, computeFuturePrice, computeAllNpvs } from "@/utils/calculations";
+import {
+  computeEpsCagrs,
+  computeFutureEps,
+  computeFuturePrice,
+  computeAllNpvs,
+  computeBvpsCagrs,
+  computeFutureBvps,
+  computeFutureEpsFromBv,
+} from "@/utils/calculations";
 import type {
   AppStatus,
   QuoteData,
@@ -13,6 +21,8 @@ import type {
   PeHistoryEntry,
   EpsCagr,
   NpvResult,
+  BvpsHistoryEntry,
+  RoeHistoryEntry,
 } from "@/types/stock";
 
 export interface UseStockDataReturn {
@@ -27,15 +37,33 @@ export interface UseStockDataReturn {
   currentEps: number | null;
   currentPe: number | null;
 
+  // Earnings tab
   expectedCagr: number | null;
   expectedPe: number | null;
   futureEps: number | null;
   futurePrice: number | null;
   npvResults: NpvResult[];
 
+  // Book Value tab
+  bvpsHistory: BvpsHistoryEntry[];
+  bvpsCagr: EpsCagr;
+  roeHistory: RoeHistoryEntry[];
+  currentBvps: number | null;
+  currentRoe: number | null;
+  expectedBvpsCagr: number | null;
+  expectedRoe: number | null;
+  expectedPeBv: number | null;
+  futureBvps: number | null;
+  futureEpsFromBv: number | null;
+  futurePriceFromBv: number | null;
+  npvResultsBv: NpvResult[];
+
   fetchStock: (ticker: string) => Promise<void>;
   setExpectedCagr: (cagr: number) => void;
   setExpectedPe: (pe: number) => void;
+  setExpectedBvpsCagr: (cagr: number) => void;
+  setExpectedRoe: (roe: number) => void;
+  setExpectedPeBv: (pe: number) => void;
   reset: () => void;
 }
 
@@ -61,13 +89,29 @@ export function useStockData(): UseStockDataReturn {
     sevenYear: null,
   });
 
+  // Earnings tab state
   const [expectedCagr, setExpectedCagrState] = useState<number | null>(null);
   const [expectedPe, setExpectedPeState] = useState<number | null>(null);
   const requestIdRef = useRef(0);
 
+  // Book Value tab state
+  const [bvpsHistory, setBvpsHistory] = useState<BvpsHistoryEntry[]>([]);
+  const [bvpsCagr, setBvpsCagr] = useState<EpsCagr>({
+    threeYear: null,
+    fiveYear: null,
+    sevenYear: null,
+  });
+  const [roeHistory, setRoeHistory] = useState<RoeHistoryEntry[]>([]);
+  const [currentBvps, setCurrentBvps] = useState<number | null>(null);
+  const [expectedBvpsCagr, setExpectedBvpsCagrState] = useState<number | null>(null);
+  const [expectedRoe, setExpectedRoeState] = useState<number | null>(null);
+  const [expectedPeBv, setExpectedPeBvState] = useState<number | null>(null);
+
   const currentEps = quote?.eps ?? null;
   const currentPe = quote?.pe ?? null;
+  const currentRoe = roeHistory.length > 0 ? roeHistory[0].roe : null;
 
+  // ── Earnings tab derived values ──
   const futureEps = useMemo(() => {
     if (currentEps === null || expectedCagr === null) return null;
     return computeFutureEps(currentEps, expectedCagr);
@@ -83,6 +127,27 @@ export function useStockData(): UseStockDataReturn {
     return computeAllNpvs(futurePrice);
   }, [futurePrice]);
 
+  // ── Book Value tab derived values ──
+  const futureBvps = useMemo(() => {
+    if (currentBvps === null || expectedBvpsCagr === null) return null;
+    return computeFutureBvps(currentBvps, expectedBvpsCagr);
+  }, [currentBvps, expectedBvpsCagr]);
+
+  const futureEpsFromBv = useMemo(() => {
+    if (futureBvps === null || expectedRoe === null) return null;
+    return computeFutureEpsFromBv(futureBvps, expectedRoe);
+  }, [futureBvps, expectedRoe]);
+
+  const futurePriceFromBv = useMemo(() => {
+    if (futureEpsFromBv === null || expectedPeBv === null) return null;
+    return computeFuturePrice(futureEpsFromBv, expectedPeBv);
+  }, [futureEpsFromBv, expectedPeBv]);
+
+  const npvResultsBv = useMemo(() => {
+    if (futurePriceFromBv === null) return [];
+    return computeAllNpvs(futurePriceFromBv);
+  }, [futurePriceFromBv]);
+
   const fetchStock = useCallback(async (tickerInput: string) => {
     const t = tickerInput.trim().toUpperCase();
     if (!t) return;
@@ -93,6 +158,9 @@ export function useStockData(): UseStockDataReturn {
     setError(null);
     setExpectedCagrState(null);
     setExpectedPeState(null);
+    setExpectedBvpsCagrState(null);
+    setExpectedRoeState(null);
+    setExpectedPeBvState(null);
 
     try {
       // All calls in parallel — MSN P/E is best-effort (returns null on failure)
@@ -170,6 +238,41 @@ export function useStockData(): UseStockDataReturn {
         }, []);
       setPeHistory(peEntries);
 
+      // --- BVPS history from book value series / shares outstanding ---
+      const sharesOutstanding = toFiniteNumber(profileData.shareOutstanding);
+      const bookValueSeries = metricsData.series?.annual?.bookValue ?? [];
+      const bvpsEntries: BvpsHistoryEntry[] = bookValueSeries
+        .slice(0, 8)
+        .map((item) => {
+          const totalBv = toFiniteNumber(item.v);
+          const bvps =
+            totalBv !== null && sharesOutstanding !== null && sharesOutstanding > 0
+              ? totalBv / sharesOutstanding
+              : null;
+          return {
+            year: extractYear(item.period),
+            bvps,
+          };
+        });
+      setBvpsHistory(bvpsEntries);
+
+      const bvpsValues = bvpsEntries.map((e) => e.bvps);
+      setBvpsCagr(computeBvpsCagrs(bvpsValues));
+
+      // Current BVPS — prefer the single accurate metric value
+      const metricBvps = toFiniteNumber(metricsData.metric.bookValuePerShareAnnual);
+      setCurrentBvps(metricBvps ?? bvpsEntries[0]?.bvps ?? null);
+
+      // --- ROE history from metrics annual series ---
+      const roeSeries = metricsData.series?.annual?.roe ?? [];
+      const roeEntries: RoeHistoryEntry[] = roeSeries
+        .slice(0, 8)
+        .map((item) => ({
+          year: extractYear(item.period),
+          roe: toFiniteNumber(item.v),
+        }));
+      setRoeHistory(roeEntries);
+
       setStatus("loaded");
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
@@ -190,6 +293,21 @@ export function useStockData(): UseStockDataReturn {
     setExpectedPeState(pe);
   }, []);
 
+  const setExpectedBvpsCagr = useCallback((cagr: number) => {
+    if (!Number.isFinite(cagr)) return;
+    setExpectedBvpsCagrState(cagr);
+  }, []);
+
+  const setExpectedRoe = useCallback((roe: number) => {
+    if (!Number.isFinite(roe)) return;
+    setExpectedRoeState(roe);
+  }, []);
+
+  const setExpectedPeBv = useCallback((pe: number) => {
+    if (!Number.isFinite(pe)) return;
+    setExpectedPeBvState(pe);
+  }, []);
+
   const reset = useCallback(() => {
     requestIdRef.current += 1;
     setStatus("idle");
@@ -201,6 +319,14 @@ export function useStockData(): UseStockDataReturn {
     setEpsCagr({ threeYear: null, fiveYear: null, sevenYear: null });
     setExpectedCagrState(null);
     setExpectedPeState(null);
+    // Book Value tab
+    setBvpsHistory([]);
+    setBvpsCagr({ threeYear: null, fiveYear: null, sevenYear: null });
+    setRoeHistory([]);
+    setCurrentBvps(null);
+    setExpectedBvpsCagrState(null);
+    setExpectedRoeState(null);
+    setExpectedPeBvState(null);
   }, []);
 
   return {
@@ -218,9 +344,25 @@ export function useStockData(): UseStockDataReturn {
     futureEps,
     futurePrice,
     npvResults,
+    // Book Value tab
+    bvpsHistory,
+    bvpsCagr,
+    roeHistory,
+    currentBvps,
+    currentRoe,
+    expectedBvpsCagr,
+    expectedRoe,
+    expectedPeBv,
+    futureBvps,
+    futureEpsFromBv,
+    futurePriceFromBv,
+    npvResultsBv,
     fetchStock,
     setExpectedCagr,
     setExpectedPe,
+    setExpectedBvpsCagr,
+    setExpectedRoe,
+    setExpectedPeBv,
     reset,
   };
 }

@@ -19,6 +19,7 @@ interface FuturePriceInputProps {
   expectedPe: number | null;
   futurePrice: number | null;
   onPeChange: (pe: number) => void;
+  title?: string;
 }
 
 export function FuturePriceInput({
@@ -28,6 +29,7 @@ export function FuturePriceInput({
   expectedPe,
   futurePrice,
   onPeChange,
+  title = "Step 2: Set Your Expected P/E Ratio",
 }: FuturePriceInputProps) {
   const clampPe = (value: number) =>
     Math.min(PE_INPUT.max, Math.max(PE_INPUT.min, value));
@@ -57,7 +59,7 @@ export function FuturePriceInput({
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <CardTitle className="text-base">
-            Step 2: Set Your Expected P/E Ratio
+            {title}
           </CardTitle>
           <Tooltip>
             <TooltipTrigger>

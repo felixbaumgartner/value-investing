@@ -13,7 +13,7 @@ export function Header() {
               Value Investing Calculator
             </h1>
             <p className="text-sm text-muted-foreground">
-              Estimate fair value using EPS growth & P/E analysis
+              Estimate fair value using earnings and book value approaches
             </p>
           </div>
         </div>

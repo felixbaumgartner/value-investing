@@ -83,3 +83,49 @@ export function computeAllNpvs(futurePrice: number): NpvResult[] {
     npv: computeNpv(futurePrice, rate),
   }));
 }
+
+// ── Book Value Valuation helpers ────────────────────────────────────
+
+/**
+ * Given an array of BVPS values sorted most-recent-first,
+ * compute CAGR for 3, 5, and 7 year periods.
+ */
+export function computeBvpsCagrs(bvpsValues: Array<number | null>): {
+  threeYear: number | null;
+  fiveYear: number | null;
+  sevenYear: number | null;
+} {
+  const current = bvpsValues[0];
+
+  const computePeriodCagr = (years: 3 | 5 | 7): number | null => {
+    const startingBvps = bvpsValues[years];
+    if (current === null || startingBvps === null) return null;
+    return computeCagr(startingBvps, current, years);
+  };
+
+  return {
+    threeYear: bvpsValues.length > 3 ? computePeriodCagr(3) : null,
+    fiveYear: bvpsValues.length > 5 ? computePeriodCagr(5) : null,
+    sevenYear: bvpsValues.length > 7 ? computePeriodCagr(7) : null,
+  };
+}
+
+/**
+ * Future BVPS = Current BVPS * (1 + expectedCagr)^5
+ */
+export function computeFutureBvps(
+  currentBvps: number,
+  expectedCagr: number
+): number {
+  return currentBvps * Math.pow(1 + expectedCagr, PROJECTION_YEARS);
+}
+
+/**
+ * Future EPS (from book value) = Future BVPS * Expected ROE
+ */
+export function computeFutureEpsFromBv(
+  futureBvps: number,
+  expectedRoe: number
+): number {
+  return futureBvps * expectedRoe;
+}

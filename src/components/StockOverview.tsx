@@ -1,16 +1,20 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency, formatPeRatio, formatMarketCap } from "@/utils/formatters";
+import { formatCurrency, formatPeRatio, formatPercent, formatMarketCap } from "@/utils/formatters";
 import type { QuoteData } from "@/types/stock";
 
 interface StockOverviewProps {
   quote: QuoteData;
+  currentBvps: number | null;
+  currentRoe: number | null;
 }
 
-export function StockOverview({ quote }: StockOverviewProps) {
+export function StockOverview({ quote, currentBvps, currentRoe }: StockOverviewProps) {
   const hasEps = quote.eps !== null && Number.isFinite(quote.eps);
   const hasPositivePe =
     quote.pe !== null && Number.isFinite(quote.pe) && quote.pe > 0;
+  const hasBvps = currentBvps !== null && Number.isFinite(currentBvps);
+  const hasRoe = currentRoe !== null && Number.isFinite(currentRoe);
 
   return (
     <Card>
@@ -31,7 +35,7 @@ export function StockOverview({ quote }: StockOverviewProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
           <div>
             <p className="text-sm text-muted-foreground">Current EPS (TTM)</p>
             <p className="text-lg font-semibold">
@@ -42,6 +46,18 @@ export function StockOverview({ quote }: StockOverviewProps) {
             <p className="text-sm text-muted-foreground">Current P/E (TTM)</p>
             <p className="text-lg font-semibold">
               {hasPositivePe && quote.pe !== null ? formatPeRatio(quote.pe) : "N/A"}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Book Value / Share</p>
+            <p className="text-lg font-semibold">
+              {hasBvps ? formatCurrency(currentBvps) : "N/A"}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Return on Equity</p>
+            <p className="text-lg font-semibold">
+              {hasRoe ? formatPercent(currentRoe) : "N/A"}
             </p>
           </div>
         </div>

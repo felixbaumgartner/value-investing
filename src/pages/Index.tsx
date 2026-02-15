@@ -9,8 +9,13 @@ import { FutureEpsInput } from "@/components/FutureEpsInput";
 import { FuturePriceInput } from "@/components/FuturePriceInput";
 import { NpvTable } from "@/components/NpvTable";
 import { ValuationSummary } from "@/components/ValuationSummary";
+import { BvpsGrowthCard } from "@/components/BvpsGrowthCard";
+import { RoeHistoryCard } from "@/components/RoeHistoryCard";
+import { FutureBvpsInput } from "@/components/FutureBvpsInput";
+import { FutureRoeInput } from "@/components/FutureRoeInput";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export default function Index() {
   const {
@@ -27,9 +32,25 @@ export default function Index() {
     futureEps,
     futurePrice,
     npvResults,
+    // Book Value tab
+    bvpsHistory,
+    bvpsCagr,
+    roeHistory,
+    currentBvps,
+    currentRoe,
+    expectedBvpsCagr,
+    expectedRoe,
+    expectedPeBv,
+    futureBvps,
+    futureEpsFromBv,
+    futurePriceFromBv,
+    npvResultsBv,
     fetchStock,
     setExpectedCagr,
     setExpectedPe,
+    setExpectedBvpsCagr,
+    setExpectedRoe,
+    setExpectedPeBv,
     reset,
   } = useStockData();
 
@@ -60,81 +81,140 @@ export default function Index() {
           </div>
         )}
 
-        {/* Stock Overview */}
+        {/* Stock Overview — shared across both tabs */}
         {isLoaded && quote && (
           <div className="animate-fade-in">
-            <StockOverview quote={quote} />
+            <StockOverview quote={quote} currentBvps={currentBvps} currentRoe={currentRoe} />
           </div>
         )}
 
-        {/* EPS Growth + P/E History side by side */}
+        {/* Valuation Tabs */}
         {isLoaded && (
-          <div
-            className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in"
-            style={{ animationDelay: "100ms" }}
-          >
-            <EpsGrowthCard epsCagr={epsCagr} epsHistory={epsHistory} />
-            <PeRatioCard currentPe={currentPe} peHistory={peHistory} />
-          </div>
-        )}
+          <Tabs defaultValue="earnings" className="animate-fade-in">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="earnings">Earnings Valuation</TabsTrigger>
+              <TabsTrigger value="bookvalue">Book Value Valuation</TabsTrigger>
+            </TabsList>
 
-        {/* User Input Section */}
-        {isLoaded && currentEps !== null && (
-          <>
-            <Separator
-              className="animate-fade-in"
-              style={{ animationDelay: "200ms" }}
-            />
+            {/* ── Tab 1: Earnings (EPS & P/E) Valuation ── */}
+            <TabsContent value="earnings" className="space-y-6">
+              {/* EPS Growth + P/E History side by side */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <EpsGrowthCard epsCagr={epsCagr} epsHistory={epsHistory} />
+                <PeRatioCard currentPe={currentPe} peHistory={peHistory} />
+              </div>
 
-            <div
-              className="animate-fade-in"
-              style={{ animationDelay: "250ms" }}
-            >
-              <FutureEpsInput
-                currentEps={currentEps}
-                epsCagr={epsCagr}
-                expectedCagr={expectedCagr}
-                futureEps={futureEps}
-                onCagrChange={setExpectedCagr}
-              />
-            </div>
-          </>
-        )}
+              {/* User Input Section */}
+              {currentEps !== null && (
+                <>
+                  <Separator />
+                  <FutureEpsInput
+                    currentEps={currentEps}
+                    epsCagr={epsCagr}
+                    expectedCagr={expectedCagr}
+                    futureEps={futureEps}
+                    onCagrChange={setExpectedCagr}
+                  />
+                </>
+              )}
 
-        {/* Future Price Input — visible after CAGR is set */}
-        {futureEps !== null && (
-          <div className="animate-fade-in">
-            <FuturePriceInput
-              futureEps={futureEps}
-              peHistory={peHistory}
-              currentPe={currentPe}
-              expectedPe={expectedPe}
-              futurePrice={futurePrice}
-              onPeChange={setExpectedPe}
-            />
-          </div>
-        )}
+              {/* Future Price Input — visible after CAGR is set */}
+              {futureEps !== null && (
+                <FuturePriceInput
+                  futureEps={futureEps}
+                  peHistory={peHistory}
+                  currentPe={currentPe}
+                  expectedPe={expectedPe}
+                  futurePrice={futurePrice}
+                  onPeChange={setExpectedPe}
+                />
+              )}
 
-        {/* NPV Table — visible after future price is calculated */}
-        {futurePrice !== null && quote && npvResults.length > 0 && (
-          <>
-            <Separator className="animate-fade-in" />
+              {/* NPV Table — visible after future price is calculated */}
+              {futurePrice !== null && quote && npvResults.length > 0 && (
+                <>
+                  <Separator />
+                  <NpvTable
+                    futurePrice={futurePrice}
+                    currentPrice={quote.price}
+                    npvResults={npvResults}
+                  />
+                  <ValuationSummary
+                    currentPrice={quote.price}
+                    npvResults={npvResults}
+                  />
+                </>
+              )}
+            </TabsContent>
 
-            <div className="animate-fade-in">
-              <NpvTable
-                futurePrice={futurePrice}
-                currentPrice={quote.price}
-                npvResults={npvResults}
-              />
-            </div>
+            {/* ── Tab 2: Book Value Valuation ── */}
+            <TabsContent value="bookvalue" className="space-y-6">
+              {/* BVPS Growth Card — always visible */}
+              <BvpsGrowthCard bvpsCagr={bvpsCagr} bvpsHistory={bvpsHistory} />
 
-            <div className="animate-fade-in" style={{ animationDelay: "100ms" }}>
-              <ValuationSummary
-                currentPrice={quote.price}
-                npvResults={npvResults}
-              />
-            </div>
-          </>
+              {/* Step 1: Expected BVPS CAGR */}
+              {currentBvps !== null && (
+                <>
+                  <Separator />
+                  <FutureBvpsInput
+                    currentBvps={currentBvps}
+                    bvpsCagr={bvpsCagr}
+                    expectedBvpsCagr={expectedBvpsCagr}
+                    futureBvps={futureBvps}
+                    onCagrChange={setExpectedBvpsCagr}
+                  />
+                </>
+              )}
+
+              {/* ROE History + Step 2 — visible after BVPS CAGR is set */}
+              {futureBvps !== null && (
+                <>
+                  <Separator />
+                  <RoeHistoryCard roeHistory={roeHistory} />
+                  <FutureRoeInput
+                    futureBvps={futureBvps}
+                    roeHistory={roeHistory}
+                    expectedRoe={expectedRoe}
+                    futureEpsFromBv={futureEpsFromBv}
+                    onRoeChange={setExpectedRoe}
+                  />
+                </>
+              )}
+
+              {/* P/E History + Step 3 — visible after ROE is set */}
+              {futureEpsFromBv !== null && (
+                <>
+                  <Separator />
+                  <PeRatioCard currentPe={currentPe} peHistory={peHistory} />
+                  <FuturePriceInput
+                    futureEps={futureEpsFromBv}
+                    peHistory={peHistory}
+                    currentPe={currentPe}
+                    expectedPe={expectedPeBv}
+                    futurePrice={futurePriceFromBv}
+                    onPeChange={setExpectedPeBv}
+                    title="Step 3: Set Your Expected P/E Ratio"
+                  />
+                </>
+              )}
+
+              {/* NPV Table — visible after future price is calculated */}
+              {futurePriceFromBv !== null && quote && npvResultsBv.length > 0 && (
+                <>
+                  <Separator />
+                  <NpvTable
+                    futurePrice={futurePriceFromBv}
+                    currentPrice={quote.price}
+                    npvResults={npvResultsBv}
+                  />
+                  <ValuationSummary
+                    currentPrice={quote.price}
+                    npvResults={npvResultsBv}
+                  />
+                </>
+              )}
+            </TabsContent>
+          </Tabs>
         )}
       </main>
 

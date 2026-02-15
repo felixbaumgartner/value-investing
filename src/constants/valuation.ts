@@ -14,3 +14,15 @@ export const PE_INPUT = {
   step: 0.5,
   defaultValue: 15,
 } as const;
+
+export const BVPS_CAGR_INPUT = {
+  min: -10,
+  max: 40,
+  step: 0.5,
+} as const;
+
+export const ROE_INPUT = {
+  min: 0,
+  max: 60,
+  step: 0.5,
+} as const;

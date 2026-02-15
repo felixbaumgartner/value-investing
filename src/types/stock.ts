@@ -150,4 +150,14 @@ export interface NpvResult {
   npv: number;
 }
 
+export interface BvpsHistoryEntry {
+  year: string;
+  bvps: number | null;
+}
+
+export interface RoeHistoryEntry {
+  year: string;
+  roe: number | null; // as decimal, e.g. 0.15 = 15%
+}
+
 export type AppStatus = "idle" | "loading" | "loaded" | "error";

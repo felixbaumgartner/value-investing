@@ -14,32 +14,32 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import { formatCurrency, formatPercent } from "@/utils/formatters";
-import type { EpsCagr, EpsHistoryEntry } from "@/types/stock";
+import type { EpsCagr, BvpsHistoryEntry } from "@/types/stock";
 
-interface EpsGrowthCardProps {
-  epsCagr: EpsCagr;
-  epsHistory: EpsHistoryEntry[];
+interface BvpsGrowthCardProps {
+  bvpsCagr: EpsCagr;
+  bvpsHistory: BvpsHistoryEntry[];
 }
 
-export function EpsGrowthCard({ epsCagr, epsHistory }: EpsGrowthCardProps) {
+export function BvpsGrowthCard({ bvpsCagr, bvpsHistory }: BvpsGrowthCardProps) {
   const rows = [
     {
       label: "3-Year",
-      cagr: epsCagr.threeYear,
-      startEps: epsHistory[3]?.epsDiluted,
-      endEps: epsHistory[0]?.epsDiluted,
+      cagr: bvpsCagr.threeYear,
+      startBvps: bvpsHistory[3]?.bvps,
+      endBvps: bvpsHistory[0]?.bvps,
     },
     {
       label: "5-Year",
-      cagr: epsCagr.fiveYear,
-      startEps: epsHistory[5]?.epsDiluted,
-      endEps: epsHistory[0]?.epsDiluted,
+      cagr: bvpsCagr.fiveYear,
+      startBvps: bvpsHistory[5]?.bvps,
+      endBvps: bvpsHistory[0]?.bvps,
     },
     {
       label: "7-Year",
-      cagr: epsCagr.sevenYear,
-      startEps: epsHistory[7]?.epsDiluted,
-      endEps: epsHistory[0]?.epsDiluted,
+      cagr: bvpsCagr.sevenYear,
+      startBvps: bvpsHistory[7]?.bvps,
+      endBvps: bvpsHistory[0]?.bvps,
     },
   ];
 
@@ -47,15 +47,15 @@ export function EpsGrowthCard({ epsCagr, epsHistory }: EpsGrowthCardProps) {
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <CardTitle className="text-base">EPS Growth (CAGR)</CardTitle>
+          <CardTitle className="text-base">BVPS Growth (CAGR)</CardTitle>
           <Tooltip>
             <TooltipTrigger>
               <Info className="h-4 w-4 text-muted-foreground" />
             </TooltipTrigger>
             <TooltipContent className="max-w-xs">
               <p>
-                Compound Annual Growth Rate of Diluted Earnings Per Share over
-                3, 5, and 7 year periods.
+                Compound Annual Growth Rate of Book Value of Equity Per Share
+                over 3, 5, and 7 year periods.
               </p>
             </TooltipContent>
           </Tooltip>
@@ -66,8 +66,8 @@ export function EpsGrowthCard({ epsCagr, epsHistory }: EpsGrowthCardProps) {
           <TableHeader>
             <TableRow>
               <TableHead>Period</TableHead>
-              <TableHead className="text-right">Start EPS</TableHead>
-              <TableHead className="text-right">End EPS</TableHead>
+              <TableHead className="text-right">Start BVPS</TableHead>
+              <TableHead className="text-right">End BVPS</TableHead>
               <TableHead className="text-right">CAGR</TableHead>
             </TableRow>
           </TableHeader>
@@ -76,10 +76,10 @@ export function EpsGrowthCard({ epsCagr, epsHistory }: EpsGrowthCardProps) {
               <TableRow key={row.label}>
                 <TableCell className="font-medium">{row.label}</TableCell>
                 <TableCell className="text-right">
-                  {row.startEps != null ? formatCurrency(row.startEps) : "N/A"}
+                  {row.startBvps != null ? formatCurrency(row.startBvps) : "N/A"}
                 </TableCell>
                 <TableCell className="text-right">
-                  {row.endEps != null ? formatCurrency(row.endEps) : "N/A"}
+                  {row.endBvps != null ? formatCurrency(row.endBvps) : "N/A"}
                 </TableCell>
                 <TableCell className="text-right">
                   {row.cagr != null ? (
@@ -99,17 +99,17 @@ export function EpsGrowthCard({ epsCagr, epsHistory }: EpsGrowthCardProps) {
           </TableBody>
         </Table>
 
-        {epsHistory.length > 0 && (
+        {bvpsHistory.length > 0 && (
           <div className="mt-4 pt-3 border-t">
             <p className="text-xs font-medium text-muted-foreground mb-2">
-              Annual EPS
+              Annual BVPS
             </p>
             <div className="grid grid-cols-4 gap-2 text-xs">
-              {epsHistory.map((entry) => (
+              {bvpsHistory.map((entry) => (
                 <div key={entry.year} className="text-center">
                   <div className="text-muted-foreground">{entry.year}</div>
                   <div className="font-medium">
-                    {entry.epsDiluted != null ? formatCurrency(entry.epsDiluted) : "N/A"}
+                    {entry.bvps != null ? formatCurrency(entry.bvps) : "N/A"}
                   </div>
                 </div>
               ))}
